@@ -40,26 +40,17 @@ func main() {
 		panic(fmt.Sprintf("Codefly REST endpoint is unavailable: %v", httpNetErr))
 	}
 	httpPort = httpNet.Port
-	var otelProvider *wooltel.Provider
+	telemetryConfig, err := configuredObservability()
+	if err != nil {
+		panic(fmt.Sprintf("configure observability: %v", err))
+	}
+	otelProvider, err := wooltel.EnableConfigured(telemetryConfig)
+	if err != nil {
+		panic(fmt.Sprintf("configure OTEL tracing: %v", err))
+	}
 	var otelMetricProvider *otelMetrics
-	if observabilityEnabled() {
-		collectorNetwork, err := codefly.For(ctx).
-			Service("telemetry").
-			Endpoint("grpc").
-			API("grpc").
-			ResolveNetworkInstance()
-		if err != nil {
-			panic(fmt.Sprintf("resolve telemetry collector through Codefly: %v", err))
-		}
-		otelProvider, err = wooltel.Enable(
-			wooltel.WithServiceName("saas-starter-auth-gateway"),
-			wooltel.WithEndpoint(collectorNetwork.Host),
-			wooltel.WithInsecure(),
-		)
-		if err != nil {
-			panic(fmt.Sprintf("configure OTEL tracing: %v", err))
-		}
-		otelMetricProvider, err = enableOTELMetrics(ctx, "saas-starter-auth-gateway", collectorNetwork.Host)
+	if telemetryConfig.State == "enabled" {
+		otelMetricProvider, err = enableOTELMetrics(ctx, telemetryConfig.Endpoint)
 		if err != nil {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			_ = otelProvider.Shutdown(shutdownCtx)
@@ -67,6 +58,8 @@ func main() {
 			panic(fmt.Sprintf("configure OTEL metrics: %v", err))
 		}
 	}
+	log.Printf("observability state=%s disabled_reason=%q", telemetryConfig.State, telemetryConfig.DisabledReason)
+
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

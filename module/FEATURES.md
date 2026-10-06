@@ -48,12 +48,10 @@ the auth-gateway in front so this code path isn't reached.
 | Observability| OpenTelemetry logs/traces/metrics for SigNoz; Sentry errors only |
 | Test infra   | Playwright e2e against the real stack via `withDependencies` |
 
-Everything is orchestrated by Codefly: `codefly run service --fixture
-dev-admin` resolves the module's service graph and brings up all eight
-services—Postgres + Vault + Redis + object storage + telemetry + Accounts +
-the private auth gateway + frontend—with seed data in one command. Marketing
-remains a separate runtime and may be started, deployed, rolled back, or
-disabled without changing the authenticated product.
+Codefly resolves service dependencies for `codefly run service --fixture dev-admin`.
+The module declares Accounts, auth-gateway, cache, store, vault, frontend and
+marketing. Marketing remains a separately deployable runtime. Infrastructure owns
+the telemetry collector; the host only instruments its services.
 
 ---
 
@@ -655,20 +653,20 @@ Environment variables consumed by the api:
 | `POSTHOG_API_HOST`             | Separate PostHog management/deletion origin                  |
 | `ERROR_TRACKING_MODE`          | Explicit `disabled` or `sentry`; rejects partial config      |
 | `SENTRY_DSN`                   | Server Sentry DSN, required in Sentry mode                   |
-| `OBSERVABILITY_EXPORTER`       | Required in-graph collector output: `debug` or `otlphttp`; the collector refuses to start when it is unset |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`  | External OTLP/HTTP destination used only by the collector    |
-| `OTEL_EXPORTER_OTLP_HEADERS`   | Secret external collector headers                            |
+| `OBSERVABILITY_STATE` | Required: `enabled`, `disabled` with a reason, or local `stdout` tracing |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Infrastructure-provided in-cell OTLP/gRPC URL |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` when enabled |
+| `OBSERVABILITY_COLLECTOR_TIER` | Infrastructure-declared collector tier when enabled |
+| `OBSERVABILITY_DISABLED_REASON` | Required explanation when disabled |
 | `ABUSE_PROTECTION_MODE`        | Explicit `disabled` or `turnstile`                           |
 | `TURNSTILE_SECRET_KEY`         | Server-only Siteverify credential                            |
 | `TURNSTILE_ALLOWED_HOSTNAMES`  | Exact accepted Turnstile response hostnames                  |
 | `CODEFLY__FIXTURE`             | Loads fixture YAML (e.g. `dev-admin`); FE login picker too |
 
-When `OTEL_EXPORTER_OTLP_ENDPOINT` is configured, the accounts service and the
-auth-gateway export unsampled request and Go runtime metrics through the in-graph
-OpenTelemetry collector. The auth-gateway covers both its HTTP gateway and gRPC ext_authz
-authorization service. Prometheus can alternatively scrape `/metrics` on each
-service's private REST endpoint; neither route is a module or public interface
-endpoint.
+When observability is enabled, Accounts and auth-gateway export request and Go
+runtime metrics by periodic OTLP push to the in-cell collector. The gateway covers
+HTTP and gRPC ext_authz. Neither service exposes a Prometheus scrape endpoint.
+Traces use the same configured collector; application logs remain on stdout.
 
 Frontend browser configuration. The server reads each value from its Codefly group per
 request (`identity`, `legal`, `product-features`, `product-analytics`, `error-tracking`,

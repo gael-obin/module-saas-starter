@@ -2,13 +2,14 @@ package main
 
 import (
 	"os"
-	"strings"
+
+	wooltel "github.com/codefly-dev/core/wool/otel"
 
 	codefly "github.com/codefly-dev/sdk-go"
 )
 
-func observabilityEnabled() bool {
-	return strings.TrimSpace(workspaceEnv("observability", "OTEL_EXPORTER_OTLP_ENDPOINT")) != ""
+func configuredObservability() (wooltel.Configuration, error) {
+	return wooltel.ReadConfiguration(func(key string) string { return workspaceEnv("observability", key) })
 }
 
 // workspaceEnv resolves Codefly workspace configuration and secret values

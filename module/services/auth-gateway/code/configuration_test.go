@@ -28,21 +28,26 @@ func TestWorkspaceEnvResolvesConfigurationSecretAndFallback(t *testing.T) {
 	require.Equal(t, "configuration", workspaceEnv("internal-auth", key))
 }
 
-func TestObservabilityEnabledRequiresExternalOTLPEndpoint(t *testing.T) {
-	const key = "OTEL_EXPORTER_OTLP_ENDPOINT"
-	configurationKey := "CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__" + key
-	secretKey := "CODEFLY__WORKSPACE_SECRET_CONFIGURATION__OBSERVABILITY__" + key
-	t.Setenv(key, "")
-	t.Setenv(configurationKey, "")
-	t.Setenv(secretKey, "")
-	require.False(t, observabilityEnabled())
-
-	t.Setenv(key, "  ")
-	require.False(t, observabilityEnabled())
-	t.Setenv(key, "https://otel.example")
-	require.True(t, observabilityEnabled())
-
-	t.Setenv(key, "")
-	t.Setenv(configurationKey, "https://workspace-otel.example")
-	require.True(t, observabilityEnabled())
+func TestObservabilityConfigurationUsesWorkspaceState(t *testing.T) {
+	keys := []string{"OBSERVABILITY_STATE", "OBSERVABILITY_DISABLED_REASON", "OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_PROTOCOL", "OBSERVABILITY_COLLECTOR_TIER"}
+	for _, key := range keys {
+		t.Setenv(key, "")
+		t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__"+key, "")
+		t.Setenv("CODEFLY__WORKSPACE_SECRET_CONFIGURATION__OBSERVABILITY__"+key, "")
+	}
+	_, err := configuredObservability()
+	require.Error(t, err)
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://stale.example:4317")
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OBSERVABILITY_STATE", "disabled")
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OBSERVABILITY_DISABLED_REASON", "no backend")
+	c, err := configuredObservability()
+	require.NoError(t, err)
+	require.Equal(t, "disabled", c.State)
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OBSERVABILITY_STATE", "enabled")
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OTEL_EXPORTER_OTLP_ENDPOINT", "http://cell-collector.example:14317")
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
+	t.Setenv("CODEFLY__WORKSPACE_CONFIGURATION__OBSERVABILITY__OBSERVABILITY_COLLECTOR_TIER", "node-agent")
+	c, err = configuredObservability()
+	require.NoError(t, err)
+	require.Equal(t, "http://cell-collector.example:14317", c.Endpoint)
 }

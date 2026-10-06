@@ -55,14 +55,11 @@ plugin, which validates the account, observes the webhook and projects the
 
 Validate the result with `codefly doctor workspace --env local-dogfood`.
 
-`observability` is the one group this profile cannot skip. The `telemetry`
-service declares it as a workspace-configuration-dependency, and on
-`local-dogfood` the real `observability.env` / `observability.secret.env` are
-Git-ignored, so there is no committed default to fall back on. Codefly skips a
-declared group whose files are absent rather than failing, and the collector
-refuses to start without an explicit `OBSERVABILITY_EXPORTER` — it will not
-silently downgrade itself to `debug` and drop every span. Copy
-`observability.env.example` as it is to keep telemetry local.
+The `observability` group requires an explicit state. Copy
+`observability.env.example` to select local stdout tracing. No collector service
+or network metrics exporter runs in this mode. A missing state fails service
+startup; infrastructure deployments supply `enabled` with their in-cell endpoint,
+or `disabled` with a reason.
 
 `email` is required because this profile is not the `local` environment, and
 accounts refuses to start there without an explicit `EMAIL_PROVIDER`: `resend`

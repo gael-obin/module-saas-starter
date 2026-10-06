@@ -200,9 +200,14 @@ active organization.
 ## Operational metrics, alerts, and recovery
 
 SigNoz is the single backend for application traces, metrics, and logs. The
-application surface remains standard OpenTelemetry/OTLP through the in-graph
+application surface remains standard OpenTelemetry/OTLP through the infrastructure-provided
 collector; an optional SigNoz provider may provision dashboards and alerts but
 does not project an application SDK, endpoint, or credential.
+
+Metrics use one delivery path: the OpenTelemetry SDK's periodic OTLP/gRPC
+exporter. Accounts and auth-gateway expose no Prometheus `/metrics` scrape
+endpoint. Service identity comes from `OTEL_SERVICE_NAME` and
+`OTEL_RESOURCE_ATTRIBUTES`, not a name embedded in the metrics initializer.
 
 Job workers emit OpenTelemetry `saas.jobs.polls`, `claimed`, `active`,
 `completed`, and `duration` instruments. Labels are limited to queue plus

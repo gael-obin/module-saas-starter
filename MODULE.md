@@ -100,7 +100,7 @@ capability; it does not claim that every planned provider is released yet.
 | Product analytics | PostHog | The `product-analytics@1` browser/server APIs may capture registered events and perform consent-gated identify, alias, organization grouping, and privacy suppression. An event may carry a variant already evaluated by Unleash for experiment analysis. | Flag definition or evaluation, exception capture, and traces, metrics, or logs |
 | Session replay | PostHog | A browser-only recorder may start after separate replay consent and redaction policy resolve to allow. It has no server SDK or implicit analytics-consent fallback. | Flags, errors, and APM signals |
 | Error tracking | Sentry | Browser/server exception events, release/environment tags, source-map upload, and the error-issue workflow. Provisioning credentials remain build/provider-only. | Performance transactions, profiles, replay, logs, metrics, and feature flags |
-| APM traces, metrics, and logs | SigNoz | Applications use OpenTelemetry SDKs and standard OTLP configuration through the in-graph collector. SigNoz receives those signals as the OTLP backend. | Product analytics, replay, feature flags, and the Sentry error-issue contract |
+| APM traces, metrics, and logs | SigNoz | Applications use OpenTelemetry SDKs and the infrastructure-provided in-cell OTLP collector. SigNoz receives those signals as the OTLP backend. | Product analytics, replay, feature flags, and the Sentry error-issue contract |
 
 Provider manifests are allowlists. `provider-posthog` may project only
 `product-analytics@1`; its browser initialization must disable flag remote
@@ -111,8 +111,8 @@ Sentry trace sampling at zero and installs no Sentry tracing integration.
 `provider-signoz`, if API qualification succeeds, may manage exactly owned
 dashboards and alerts but projects no application runtime configuration. In
 particular, dashboard provisioning is not an application telemetry contract:
-application OTLP endpoints remain instrumentation configuration resolved
-through the telemetry service.
+application OTLP endpoints come from the infrastructure observability handoff.
+The host runs no collector.
 
 The starter keeps the capability configurations independent. Selecting
 PostHog never selects flags, errors, or observability; selecting Sentry never

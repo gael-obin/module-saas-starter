@@ -2,17 +2,12 @@ package main
 
 import (
 	"context"
-	"net/http"
 	runtimemetrics "runtime/metrics"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	otelprometheus "go.opentelemetry.io/otel/exporters/prometheus"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -20,24 +15,12 @@ import (
 
 type otelMetrics struct {
 	provider *metric.MeterProvider
-	handler  http.Handler
 }
 
-func enableOTELMetrics(ctx context.Context, serviceName, endpoint string) (*otelMetrics, error) {
+func enableOTELMetrics(ctx context.Context, endpointURL string) (*otelMetrics, error) {
 	exporter, err := otlpmetricgrpc.New(
 		ctx,
-		otlpmetricgrpc.WithEndpoint(endpoint),
-		otlpmetricgrpc.WithInsecure(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	registry := prometheus.NewRegistry()
-	scrapeExporter, err := otelprometheus.New(
-		otelprometheus.WithRegisterer(registry),
-		otelprometheus.WithResourceAsConstantLabels(
-			attribute.NewAllowKeysFilter("service.name"),
-		),
+		otlpmetricgrpc.WithEndpointURL(endpointURL),
 	)
 	if err != nil {
 		return nil, err
@@ -46,15 +29,14 @@ func enableOTELMetrics(ctx context.Context, serviceName, endpoint string) (*otel
 		ctx,
 		resource.WithService(),
 		resource.WithFromEnv(),
-		resource.WithAttributes(attribute.String("service.name", serviceName)),
 	)
 	if err != nil {
+		_ = exporter.Shutdown(ctx)
 		return nil, err
 	}
 	provider := metric.NewMeterProvider(
 		metric.WithResource(res),
 		metric.WithReader(metric.NewPeriodicReader(exporter, metric.WithInterval(30*time.Second))),
-		metric.WithReader(scrapeExporter),
 	)
 	if err := otelruntime.Start(otelruntime.WithMeterProvider(provider)); err != nil {
 		_ = provider.Shutdown(ctx)
@@ -67,7 +49,6 @@ func enableOTELMetrics(ctx context.Context, serviceName, endpoint string) (*otel
 	otel.SetMeterProvider(provider)
 	return &otelMetrics{
 		provider: provider,
-		handler:  promhttp.HandlerFor(registry, promhttp.HandlerOpts{}),
 	}, nil
 }
 
@@ -100,10 +81,6 @@ func startGCActivityMetrics(provider *metric.MeterProvider) error {
 		return nil
 	}, cycleCount, pauseCPUTime)
 	return err
-}
-
-func (m *otelMetrics) Handler() http.Handler {
-	return m.handler
 }
 
 func (m *otelMetrics) Shutdown(ctx context.Context) error {

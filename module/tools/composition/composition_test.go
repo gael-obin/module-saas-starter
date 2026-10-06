@@ -329,11 +329,15 @@ permissions:
 
 func writeCoreInput(t *testing.T, fixture *coreCompositionFixture) {
 	t.Helper()
+	manifest, err := modulepackage.ReadManifest(findModuleRoot(t))
+	if err != nil {
+		t.Fatal(err)
+	}
 	input := corecomposition.CompositionInput{
 		Schema:       "codefly/composition-input/v2",
 		Module:       fixture.descriptor.Name,
-		Package:      "codefly/saas-starter",
-		Version:      "0.1.0",
+		Package:      manifest.ID,
+		Version:      manifest.Version,
 		ConsumerRoot: fixture.consumerRoot,
 		Projection:   fixture.projection,
 		Contracts: map[string]string{

@@ -5,7 +5,7 @@ description: Boot this module's whole service graph on a developer machine — w
 
 # Running the starter locally
 
-The graph is vault → store → cache → telemetry → accounts → auth-gateway →
+The graph is vault → store → cache → accounts → auth-gateway →
 frontend, plus marketing. One command boots all of it with a fake-auth fixture:
 
 ```bash

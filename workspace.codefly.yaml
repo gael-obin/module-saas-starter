@@ -2,7 +2,6 @@ name: saas-starter-dev
 layout: modules
 modules:
     - name: saas-starter
-
 # Durable stores `codefly publish clients` / `codefly publish library` publish
 # generated client libraries to, and `codefly install library` resolves from.
 #
@@ -23,8 +22,7 @@ modules:
 # NODE_AUTH_TOKEN) belong to release CI, never to a runtime.
 libraries:
     publish:
-        typescript: {registry: https://npm.pkg.github.com, scope: "@codefly-dev"}
-
+        typescript: {registry: 'https://npm.pkg.github.com', scope: "@codefly-dev"}
 # Repository publication (repo-url, branch, revision, checkout, Argo/Flux
 # Application assembly) is owned by the CLI/server promotion driver, not the
 # module plugin. The plugin renders module-owned Kubernetes overlays and a
@@ -46,38 +44,36 @@ environments:
       # omits it and loads the real identity-provider configuration instead.
       fixture: dev-admin
       cluster:
-          kind: k3d
-          kubeconfig: ~/.kube/config
+        kind: k3d
+        kubeconfig: ~/.kube/config
       registry:
-          url: localhost:5001
+        url: localhost:5001
       namespace: saas-starter
       ingress:
-          - name: marketing
-            service: marketing
-            endpoint: http
-            hosts:
-                - saas.localhost
-                - www.saas.localhost
-                - docs.saas.localhost
-          - name: product
-            service: frontend
-            endpoint: http
-            hosts:
-                - app.saas.localhost
-                - localhost
-
+        - name: marketing
+          service: marketing
+          endpoint: http
+          hosts:
+            - saas.localhost
+            - www.saas.localhost
+            - docs.saas.localhost
+        - name: product
+          service: frontend
+          endpoint: http
+          hosts:
+            - app.saas.localhost
+            - localhost
     # Real local product use. This remains a local Codefly runtime, but loads
     # operator-owned identity credentials from configurations/local-dogfood instead
     # of enabling fixture authentication.
     - name: local-dogfood
       description: Local SaaS dogfood with an external identity provider
       cluster:
-          kind: k3d
-          kubeconfig: ~/.kube/config
+        kind: k3d
+        kubeconfig: ~/.kube/config
       registry:
-          url: localhost:5001
+        url: localhost:5001
       namespace: saas-starter-dogfood
-
     # AWS EKS production target. Replace registry URL with your ECR
     # repo + bump kubeconfig path to wherever your cluster's config
     # lives (or set $KUBECONFIG and drop the kubeconfig line). `auth:
@@ -86,11 +82,11 @@ environments:
     - name: aws
       description: AWS EKS production
       cluster:
-          kind: eks
-          kubeconfig: ~/Development/codefly.dev/infrastructure/eks/kubeconfig.yaml
+        kind: eks
+        kubeconfig: ~/Development/codefly.dev/infrastructure/eks/kubeconfig.yaml
       registry:
-          url: 621829027644.dkr.ecr.us-east-1.amazonaws.com/saas-starter
-          auth: ecr
+        url: 621829027644.dkr.ecr.us-east-1.amazonaws.com/saas-starter
+        auth: ecr
       namespace: saas-starter
       # Every module-managed AWS dependency requires an exact endpoint and
       # egress CIDR. Optional secret-references contain provider references,
@@ -116,3 +112,6 @@ environments:
       #         external-name: vault.vault.svc.cluster.local
       #         auth-mode: external-identity
       #         egress-namespace: vault
+agent-overrides:
+    codefly.dev/go-grpc: 0.1.51
+    codefly.dev/vault: 0.0.38

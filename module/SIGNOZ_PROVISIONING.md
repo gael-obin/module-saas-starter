@@ -11,11 +11,10 @@ deployment against which to prove the lifecycle. Creating a provider before
 that boundary exists would turn an untested upstream API into a claimed Codefly
 contract.
 
-This decision does not affect application telemetry. Applications continue to
-send OTLP to the in-graph collector endpoint resolved through Codefly; they do
-not read or hard-code that address. `OTEL_EXPORTER_OTLP_ENDPOINT` remains only
-the collector's external OTLP/HTTP destination. Dashboard provisioning is not
-an application runtime capability.
+This decision does not affect application telemetry. Applications send OTLP to
+the in-cell collector supplied by infrastructure through the `observability`
+configuration group. The host owns instrumentation, not a collector or external
+backend credentials. Dashboard provisioning is not an application runtime capability.
 
 ## Qualification result
 

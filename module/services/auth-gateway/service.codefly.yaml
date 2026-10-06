@@ -20,9 +20,6 @@ service-dependencies:
     - name: cache
       endpoints:
         - name: write
-    - name: telemetry
-      endpoints:
-        - name: grpc
 workspace-configuration-dependencies:
     # APP_BASE_URL: this host's own public origin. The gateway publishes it in
     # the RFC 9728 document for a solution's MCP endpoint and requires a token's
@@ -37,9 +34,11 @@ workspace-configuration-dependencies:
     - security
 endpoints:
     - name: grpc
-      visibility: module
+      visibility: internal
+      allow-modules: ["*"]
     - name: rest
-      visibility: module
+      visibility: internal
+      allow-modules: ["*"]
 spec:
     hot-reload: true
     protocol-output-dirs:
